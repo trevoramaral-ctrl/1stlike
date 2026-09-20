@@ -217,8 +217,8 @@ h1 { font-family:var(--f-disp); font-weight:900; font-size:clamp(26px,6vw,38px);
 
 /* dashboard preview */
 .pv-shell { position: relative; }
-.pv-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; align-items: stretch; pointer-events: none; user-select: none; }
-.pv-col { display: grid; gap: 16px; align-content: start; grid-template-rows: auto 1fr; }
+.pv-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; align-items: start; pointer-events: none; user-select: none; }
+.pv-col { display: grid; gap: 16px; align-content: start; }
 @media (max-width: 760px) { .pv-grid { grid-template-columns: 1fr; } }
 
 .pv-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; box-shadow: var(--shadow); }
