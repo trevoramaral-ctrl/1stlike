@@ -353,3 +353,23 @@ h1 { font-family:var(--f-disp); font-weight:900; font-size:clamp(26px,6vw,38px);
 }
 .pv-mins { margin-left: auto; flex: none; font-size: 10.5px; color: var(--ink-3); }
 .pv-task { font-variant-numeric: tabular-nums; }
+
+/* live work meter */
+.meter-clock { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.meter-of { color: var(--ink-3); }
+.meter-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 0 0 color-mix(in srgb, var(--lime) 70%, transparent); animation: meterPulse 1.6s ease-out infinite; }
+@keyframes meterPulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lime) 70%, transparent); }
+  70%  { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .meter-dot { animation: none; } }
+.meter-btn {
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: .03em;
+  background: transparent; color: var(--ink-2);
+  border: 1px solid var(--line-2); border-radius: 999px;
+  padding: 4px 12px; cursor: pointer;
+}
+.meter-btn:hover:not(:disabled) { border-color: var(--ink-3); color: var(--ink); }
+.meter-btn:disabled { opacity: .55; cursor: default; }
+.meter-card .meter { margin-bottom: 0; }

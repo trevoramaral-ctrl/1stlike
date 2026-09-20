@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth, signOut } from '../auth'
 import { loadProfile, saveProfile } from '../lib/store'
 import { startCheckout } from '../lib/checkout'
@@ -95,6 +95,11 @@ export default function Dashboard() {
   const [follows, setFollows] = useState({})
   const [checks, setChecks] = useState({})
   const [completedDates, setCompletedDates] = useState([])
+  const [sessionMs, setSessionMs] = useState(0)
+  const [running, setRunning] = useState(false)
+  const sessionRef = useRef(0)
+  const checksRef = useRef({})
+  const datesRef = useRef([])
 
   useEffect(() => {
     let alive = true
@@ -106,8 +111,13 @@ export default function Dashboard() {
         setIsPaid(!!p.is_paid)
         setFollows(p.follows || {})
         setCompletedDates(Array.isArray(st.completedDates) ? st.completedDates : [])
-        if (st.day === todayStr()) setChecks(st.checks || {})
-        else setChecks({})
+        if (st.day === todayStr()) {
+          setChecks(st.checks || {})
+          setSessionMs(st.sessionMs || 0)
+        } else {
+          setChecks({})
+          setSessionMs(0)
+        }
       })
       .catch((e) => console.error(e))
       .finally(() => alive && setLoading(false))
@@ -142,20 +152,58 @@ export default function Dashboard() {
 
   const persist = (patch) => { saveProfile(user.id, patch).catch((e) => console.error(e)) }
 
+  useEffect(() => { sessionRef.current = sessionMs }, [sessionMs])
+  useEffect(() => { checksRef.current = checks }, [checks])
+  useEffect(() => { datesRef.current = completedDates }, [completedDates])
+
+  // One writer for today's state so the timer and the checklist never clobber each other.
+  const writeState = (patch = {}) => {
+    persist({
+      state: {
+        day: todayStr(),
+        checks: patch.checks ?? checksRef.current,
+        completedDates: patch.completedDates ?? datesRef.current,
+        sessionMs: patch.sessionMs ?? sessionRef.current,
+      },
+    })
+  }
+
+  // The meter only advances while the tab is actually in front of you. Leaving it
+  // open in a background tab shouldn't earn you credit for work you didn't do.
+  useEffect(() => {
+    if (!running) return
+    const iv = setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      setSessionMs((ms) => Math.min(ms + 1000, DAILY_MINUTES * 60000))
+    }, 1000)
+    return () => clearInterval(iv)
+  }, [running])
+
+  // Save progress periodically while running, and once on pause.
+  useEffect(() => {
+    if (!running) return
+    const iv = setInterval(() => writeState({ sessionMs: sessionRef.current }), 20000)
+    return () => { clearInterval(iv); writeState({ sessionMs: sessionRef.current }) }
+  }, [running])
+
   const toggle = (id, val) => {
     const nextChecks = { ...checks, [id]: val }
     setChecks(nextChecks)
+    if (val && !running) setRunning(true) // ticking anything starts the clock
     let nextDates = completedDates
     if (TASKS.every((t) => nextChecks[t.id]) && !completedDates.includes(todayStr())) {
       nextDates = [...completedDates, todayStr()]
       setCompletedDates(nextDates)
+      setRunning(false)
     }
-    persist({ state: { day: todayStr(), checks: nextChecks, completedDates: nextDates } })
+    writeState({ checks: nextChecks, completedDates: nextDates })
   }
 
   const resetDay = () => {
     setChecks({})
-    persist({ state: { day: todayStr(), checks: {}, completedDates } })
+    setSessionMs(0)
+    setRunning(false)
+    writeState({ checks: {}, sessionMs: 0 })
   }
 
   const saveHandle = () => {
@@ -180,6 +228,13 @@ export default function Dashboard() {
   const doneCount = TASKS.filter((t) => checks[t.id]).length
   const doneFree = TASKS.slice(0, FREE_TASKS).filter((t) => checks[t.id]).length
   const minutesDone = TASKS.filter((t) => checks[t.id]).reduce((sum, t) => sum + t.m, 0)
+  // The meter is whichever is further along: time actually worked, or the value of
+  // the tasks already ticked. So it drifts up as you work and jumps when you finish one.
+  const workedMin = sessionMs / 60000
+  const meterMin = Math.min(DAILY_MINUTES, Math.max(workedMin, minutesDone))
+  const meterPct = (meterMin / DAILY_MINUTES) * 100
+  const clock = `${Math.floor(meterMin)}:${pad(Math.round((meterMin % 1) * 60))}`
+  const full = meterMin >= DAILY_MINUTES
   const streak = computeStreak(completedDates)
   const loggedToday = follows[todayStr()] != null
   const g = grade(streak, doneCount, delta, series.length > 1)
@@ -271,24 +326,6 @@ export default function Dashboard() {
                 <span>Today’s grind</span>
                 <span className="mono">{paid ? `${doneCount} / ${TASKS.length}` : `${doneFree} / ${FREE_TASKS} free`}</span>
               </div>
-              <p className="grind-note">No bots, no blah-blah-blah. 20 minutes a day.</p>
-              <div className="meter">
-                <div className="meter-head">
-                  <span className="mono">{minutesDone} of {DAILY_MINUTES} min done</span>
-                  <span className="mono">
-                    {minutesDone >= DAILY_MINUTES ? 'that’s the day' : `${DAILY_MINUTES - minutesDone} min left`}
-                  </span>
-                </div>
-                <div className="meter-track">
-                  <span className="meter-fill" style={{ width: `${Math.min(100, (minutesDone / DAILY_MINUTES) * 100)}%` }} />
-                  {!paid && <span className="meter-locked" style={{ left: `${(FREE_MINUTES / DAILY_MINUTES) * 100}%` }} />}
-                </div>
-                {!paid && (
-                  <p className="hero-note" style={{ marginTop: 8 }}>
-                    {FREE_MINUTES} minutes are free every day. The last {DAILY_MINUTES - FREE_MINUTES} unlock with a subscription.
-                  </p>
-                )}
-              </div>
 
               {paid && doneCount === TASKS.length && (
                 <div className="done-badge"><b>Day done.</b> You showed up. That’s how the number climbs.</div>
@@ -317,6 +354,33 @@ export default function Dashboard() {
               })}
 
               {paid && <button className="reset" onClick={resetDay}>Reset today</button>}
+            </div>
+
+            <div className="pv-card meter-card">
+              <p className="grind-note">No bots, no blah-blah-blah. 20 minutes a day.</p>
+              <div className="meter">
+                <div className="meter-head">
+                  <span className={`mono meter-clock${running ? ' is-running' : ''}`}>
+                    {running && <span className="meter-dot" />}
+                    {clock} <span className="meter-of">of {DAILY_MINUTES}:00</span>
+                  </span>
+                  <button className="meter-btn" onClick={() => setRunning((r) => !r)} disabled={full}>
+                    {full ? 'Done for today' : running ? 'Pause' : meterMin > 0 ? 'Resume' : 'Start'}
+                  </button>
+                </div>
+                <div className="meter-track">
+                  <span className="meter-fill" style={{ width: `${meterPct}%` }} />
+                  {!paid && <span className="meter-locked" style={{ left: `${(FREE_MINUTES / DAILY_MINUTES) * 100}%` }} />}
+                </div>
+                <p className="hero-note" style={{ marginTop: 8 }}>
+                  {full
+                    ? 'That’s your twenty. Everything after this is a bonus.'
+                    : running
+                      ? 'Clock’s running. It only counts while this tab is in front of you.'
+                      : 'Hit start, or just tick your first task and the clock starts itself.'}
+                  {!paid && ` ${FREE_MINUTES} of the ${DAILY_MINUTES} minutes are free each day.`}
+                </p>
+              </div>
             </div>
           </div>
 

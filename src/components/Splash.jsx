@@ -86,16 +86,6 @@ export default function Splash({ onSignUp, onLogin }) {
 
               <div className="pv-card">
                 <div className="pv-h"><span>Today’s grind</span><span className="pv-streak">🔥 6</span></div>
-                <p className="grind-note">No bots, no blah-blah-blah. 20 minutes a day.</p>
-                <div className="meter">
-                  <div className="meter-head">
-                    <span className="mono">{DEMO_MINUTES} of {DAILY_MINUTES} min done</span>
-                    <span className="mono">{DAILY_MINUTES - DEMO_MINUTES} min left</span>
-                  </div>
-                  <div className="meter-track">
-                    <span className="meter-fill" style={{ width: `${(DEMO_MINUTES / DAILY_MINUTES) * 100}%` }} />
-                  </div>
-                </div>
                 {TASKS.map(([t, done, m], i) => (
                   <div className={`pv-task${done ? ' done' : ''}${i >= 3 ? ' pv-soft' : ''}`} key={t}>
                     <span className="pv-box">{done ? '✓' : ''}</span>
@@ -103,6 +93,22 @@ export default function Splash({ onSignUp, onLogin }) {
                     <span className="pv-mins mono">{m} min</span>
                   </div>
                 ))}
+              </div>
+
+              <div className="pv-card meter-card">
+                <p className="grind-note">No bots, no blah-blah-blah. 20 minutes a day.</p>
+                <div className="meter">
+                  <div className="meter-head">
+                    <span className="mono meter-clock is-running">
+                      <span className="meter-dot" />
+                      {DEMO_MINUTES}:12 <span className="meter-of">of {DAILY_MINUTES}:00</span>
+                    </span>
+                    <span className="meter-btn">Pause</span>
+                  </div>
+                  <div className="meter-track">
+                    <span className="meter-fill" style={{ width: `${(DEMO_MINUTES / DAILY_MINUTES) * 100}%` }} />
+                  </div>
+                </div>
               </div>
             </div>
 
