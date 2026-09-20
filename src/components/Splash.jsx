@@ -24,6 +24,8 @@ const FRESH_POSTS = [
   ['@denimdaily', '31s ago', '5 likes'],
   ['@thriftedco', '48s ago', '1 like'],
   ['@fitcheckfriday', '1m ago', '9 likes'],
+  ['@rawselvedge', '1m ago', '4 likes'],
+  ['@archivepieces', '2m ago', '11 likes'],
 ]
 
 const Heart = () => (
@@ -42,8 +44,7 @@ export default function Splash({ onSignUp, onLogin }) {
         <h1>Your one-stop shop for honest, interactive followers on Instagram.</h1>
         <p className="splash-sub">
           No bots. No bought followers. No engagement pods. First Like finds the right posts the
-          moment they go up and shows you exactly where to show up, so the people who follow you
-          are real people who actually chose to. You do the engaging. We do the finding.
+          second they go up, so the people who follow you are real people who chose to.
         </p>
         <button className="primary big" onClick={onSignUp}>Sign Up</button>
         <p className="splash-mini">
@@ -98,10 +99,10 @@ export default function Splash({ onSignUp, onLogin }) {
                 ))}
               </div>
 
-              <div className="pv-card pv-soft">
+              <div className="pv-card">
                 <div className="pv-h"><span>Freshest posts right now</span><span className="pv-live">● live</span></div>
                 {FRESH_POSTS.map(([handle, age, likes]) => (
-                  <div className="pv-post" key={handle}>
+                  <div className="pv-post pv-tease" key={handle}>
                     <span className="pv-thumb" />
                     <span className="pv-post-meta">
                       <b>{handle}</b>
