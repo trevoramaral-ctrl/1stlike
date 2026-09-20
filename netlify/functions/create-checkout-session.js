@@ -5,7 +5,9 @@
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+// Managed Payments requires 2025-03-31.basil or newer. Pin it explicitly so the
+// account's default API version can't silently break checkout again.
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-03-31.basil' })
 
 // Service-role client. It bypasses row-level security, which we need in order to
 // read and write any subscriber's row from the server.
