@@ -329,3 +329,27 @@ h1 { font-family:var(--f-disp); font-weight:900; font-size:clamp(26px,6vw,38px);
 }
 .hub .prog { margin: 2px 0 10px; }
 .hub .task:first-of-type { border-top: 1px solid var(--line); }
+
+/* 20-minute daily meter */
+.grind-note {
+  margin: 0 0 10px; font-family: var(--f-mono); font-size: 10.5px;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3);
+}
+.meter { margin: 0 0 14px; }
+.meter-head { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.meter-head .mono { font-size: 11px; color: var(--ink-2); }
+.meter-track {
+  position: relative; height: 10px; border-radius: 999px;
+  background: var(--surface-2); overflow: hidden;
+}
+.meter-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: var(--lime); border-radius: 999px;
+  transition: width .25s ease;
+}
+.meter-locked {
+  position: absolute; right: 0; top: 0; bottom: 0;
+  background: repeating-linear-gradient(45deg, var(--line-2) 0 3px, transparent 3px 7px);
+}
+.pv-mins { margin-left: auto; flex: none; font-size: 10.5px; color: var(--ink-3); }
+.pv-task { font-variant-numeric: tabular-nums; }

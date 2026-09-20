@@ -9,15 +9,18 @@ const MANUAL_COMMENTS = 'Instagram’s API doesn’t let any app see comments yo
 const MANUAL_FOLLOWS = 'Instagram’s API doesn’t expose who you follow, so this one can’t be checked automatically. You log it yourself. Automating it is exactly what gets accounts banned, and it’s the bot behaviour we refuse to do.'
 
 const TASKS = [
-  { id: 'niche',   t: "Set today's niche",            d: 'Decide where you’re hunting today and pull your tag stacks.' },
-  { id: 'first',   t: 'Be first on 20 fresh posts',   d: 'Like within the first minute. Skip anything already on hundreds of likes.', n: MANUAL_LIKES },
-  { id: 'comment', t: 'Leave 5 real comments',        d: 'Use an opener, tweak one word so it fits the actual post.', n: MANUAL_COMMENTS },
-  { id: 'reply',   t: 'Reply to everyone on your posts', d: 'Fast replies tell the algorithm you’re active.' },
-  { id: 'follow',  t: 'Follow 5 you genuinely rate',  d: 'Only people you’d want listening. Engage first, then follow.', n: MANUAL_FOLLOWS },
-  { id: 'profile', t: 'Glance at your profile',       d: 'Bio sharp, latest post strong. It’s where all this traffic lands.' },
+  { id: 'niche',   t: "Set today's niche",            m: 2, d: 'Decide where you’re hunting today and pull your tag stacks.' },
+  { id: 'first',   t: 'Be first on 20 fresh posts',   m: 7, d: 'Like within the first minute. Skip anything already on hundreds of likes.', n: MANUAL_LIKES },
+  { id: 'comment', t: 'Leave 5 real comments',        m: 5, d: 'Use an opener, tweak one word so it fits the actual post.', n: MANUAL_COMMENTS },
+  { id: 'reply',   t: 'Reply to everyone on your posts', m: 3, d: 'Fast replies tell the algorithm you’re active.' },
+  { id: 'follow',  t: 'Follow 5 you genuinely rate',  m: 2, d: 'Only people you’d want listening. Engage first, then follow.', n: MANUAL_FOLLOWS },
+  { id: 'profile', t: 'Glance at your profile',       m: 1, d: 'Bio sharp, latest post strong. It’s where all this traffic lands.' },
 ]
 
 const FREE_TASKS = 3
+// The whole routine is built to cost 20 minutes. That promise is the product.
+const DAILY_MINUTES = TASKS.reduce((sum, t) => sum + t.m, 0)
+const FREE_MINUTES = TASKS.slice(0, FREE_TASKS).reduce((sum, t) => sum + t.m, 0)
 const SAMPLE_SERIES = [1180, 1240, 1215, 1330, 1402, 1388, 1475, 1560].map((n, i) => ({ d: String(i), n }))
 
 const pad = (n) => String(n).padStart(2, '0')
@@ -176,6 +179,7 @@ export default function Dashboard() {
   const delta = series.length ? current - series[0].n : 0
   const doneCount = TASKS.filter((t) => checks[t.id]).length
   const doneFree = TASKS.slice(0, FREE_TASKS).filter((t) => checks[t.id]).length
+  const minutesDone = TASKS.filter((t) => checks[t.id]).reduce((sum, t) => sum + t.m, 0)
   const streak = computeStreak(completedDates)
   const loggedToday = follows[todayStr()] != null
   const g = grade(streak, doneCount, delta, series.length > 1)
@@ -267,10 +271,23 @@ export default function Dashboard() {
                 <span>Today’s grind</span>
                 <span className="mono">{paid ? `${doneCount} / ${TASKS.length}` : `${doneFree} / ${FREE_TASKS} free`}</span>
               </div>
-              <div className="prog">
-                <div className="bar-track">
-                  <span style={{ width: `${(paid ? doneCount / TASKS.length : doneFree / FREE_TASKS) * 100}%` }} />
+              <p className="grind-note">No bots, no blah-blah-blah. 20 minutes a day.</p>
+              <div className="meter">
+                <div className="meter-head">
+                  <span className="mono">{minutesDone} of {DAILY_MINUTES} min done</span>
+                  <span className="mono">
+                    {minutesDone >= DAILY_MINUTES ? 'that’s the day' : `${DAILY_MINUTES - minutesDone} min left`}
+                  </span>
                 </div>
+                <div className="meter-track">
+                  <span className="meter-fill" style={{ width: `${Math.min(100, (minutesDone / DAILY_MINUTES) * 100)}%` }} />
+                  {!paid && <span className="meter-locked" style={{ left: `${(FREE_MINUTES / DAILY_MINUTES) * 100}%` }} />}
+                </div>
+                {!paid && (
+                  <p className="hero-note" style={{ marginTop: 8 }}>
+                    {FREE_MINUTES} minutes are free every day. The last {DAILY_MINUTES - FREE_MINUTES} unlock with a subscription.
+                  </p>
+                )}
               </div>
 
               {paid && doneCount === TASKS.length && (
@@ -288,7 +305,7 @@ export default function Dashboard() {
                       onChange={(e) => toggle(task.id, e.target.checked)} />
                     <label className="b" htmlFor={`chk-${task.id}`}>
                       <span className="t">{task.t}{locked ? ' 🔒' : ''}</span>
-                      <span className="d">{locked ? 'Subscriber-only. Unlock the full routine.' : task.d}</span>
+                      <span className="d">{locked ? `Subscriber-only · ${task.m} min` : `${task.d} · ${task.m} min`}</span>
                     </label>
                     {task.n && !locked && (
                       <span className="tip" tabIndex={0} aria-label={task.n}>

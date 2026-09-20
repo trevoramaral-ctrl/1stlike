@@ -3,13 +3,15 @@
 const BRAND = '@streetwear.lofi'
 
 const TASKS = [
-  ["Set today's niche", true],
-  ['Be first on 20 fresh posts', true],
-  ['Leave 5 real comments', true],
-  ['Reply to everyone on your posts', false],
-  ['Follow 5 you genuinely rate', false],
-  ['Glance at your profile', false],
+  ["Set today's niche", true, 2],
+  ['Be first on 20 fresh posts', true, 7],
+  ['Leave 5 real comments', true, 5],
+  ['Reply to everyone on your posts', false, 3],
+  ['Follow 5 you genuinely rate', false, 2],
+  ['Glance at your profile', false, 1],
 ]
+const DAILY_MINUTES = 20
+const DEMO_MINUTES = 14
 
 const HASHTAGS = [
   ['#streetwearfits', 'Hot', 94],
@@ -84,10 +86,21 @@ export default function Splash({ onSignUp, onLogin }) {
 
               <div className="pv-card">
                 <div className="pv-h"><span>Today’s grind</span><span className="pv-streak">🔥 6</span></div>
-                {TASKS.map(([t, done], i) => (
+                <p className="grind-note">No bots, no blah-blah-blah. 20 minutes a day.</p>
+                <div className="meter">
+                  <div className="meter-head">
+                    <span className="mono">{DEMO_MINUTES} of {DAILY_MINUTES} min done</span>
+                    <span className="mono">{DAILY_MINUTES - DEMO_MINUTES} min left</span>
+                  </div>
+                  <div className="meter-track">
+                    <span className="meter-fill" style={{ width: `${(DEMO_MINUTES / DAILY_MINUTES) * 100}%` }} />
+                  </div>
+                </div>
+                {TASKS.map(([t, done, m], i) => (
                   <div className={`pv-task${done ? ' done' : ''}${i >= 3 ? ' pv-soft' : ''}`} key={t}>
                     <span className="pv-box">{done ? '✓' : ''}</span>
                     <span>{t}</span>
+                    <span className="pv-mins mono">{m} min</span>
                   </div>
                 ))}
               </div>
