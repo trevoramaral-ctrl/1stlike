@@ -1,0 +1,43 @@
+functionsDirectory = "/sessions/rcw-01qqsuk95ab2kku7fawfenpi/mnt/trevoramaral/Downloads/first-like/netlify/functions"
+functionsDirectoryOrigin = "config-v1"
+redirectsOrigin = "config"
+plugins = []
+headers = []
+
+[build]
+publish = "/sessions/rcw-01qqsuk95ab2kku7fawfenpi/mnt/trevoramaral/Downloads/first-like/dist"
+publishOrigin = "config"
+commandOrigin = "config"
+command = "npm run build"
+functions = "/sessions/rcw-01qqsuk95ab2kku7fawfenpi/mnt/trevoramaral/Downloads/first-like/netlify/functions"
+
+[build.environment]
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]
+
+[functions]
+
+[functions."*"]
+node_bundler = "esbuild"
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]

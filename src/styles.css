@@ -185,3 +185,16 @@ h1 { font-family:var(--f-disp); font-weight:900; font-size:clamp(26px,6vw,38px);
 .perks { list-style:none; margin:20px 0 22px; padding:0; display:flex; flex-direction:column; gap:11px; }
 .perks li { display:flex; align-items:flex-start; gap:10px; font-size:14.5px; color:var(--ink); }
 .perks .tick { width:19px; height:19px; flex:none; margin-top:1px; color:var(--good); }
+
+/* Free-tier locked states */
+.task.locked { opacity: .5; }
+.task.locked input { cursor: not-allowed; }
+.hero.locked { text-align: left; }
+.hero.locked .primary, .soon.upsell .primary { margin-top: 14px; }
+.soon.upsell { border-color: var(--red); }
+
+/* Blurred teaser graph for non-subscribers */
+.blur-wrap { position: relative; }
+.blur-wrap .blurred { filter: blur(6px); opacity: .8; }
+.blurred { pointer-events: none; user-select: none; }
+.blur-cta { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
