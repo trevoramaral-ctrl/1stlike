@@ -198,3 +198,30 @@ h1 { font-family:var(--f-disp); font-weight:900; font-size:clamp(26px,6vw,38px);
 .blur-wrap .blurred { filter: blur(6px); opacity: .8; }
 .blurred { pointer-events: none; user-select: none; }
 .blur-cta { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+
+/* Splash / landing page */
+.splash { max-width: 720px; margin: 0 auto; padding: 18px 16px 72px; }
+.splash-nav { display: flex; align-items: center; justify-content: space-between; padding: 6px 0 28px; }
+.splash-hero { text-align: center; padding: 28px 0 8px; }
+.splash-hero h1 { font-size: 2.6rem; line-height: 1.05; margin: 0 0 16px; }
+.splash-sub { color: #555; font-size: 1.1rem; max-width: 520px; margin: 0 auto 26px; line-height: 1.5; }
+.primary.big { font-size: 1.05rem; padding: 13px 30px; }
+.splash-mini { margin-top: 14px; color: #666; font-size: .9rem; }
+.splash-peek { text-align: center; text-transform: uppercase; letter-spacing: .08em; font-size: .78rem; color: #999; margin: 52px 0 16px; }
+.preview { pointer-events: none; user-select: none; display: grid; gap: 16px; }
+.pv-card { background: #fff; border: 1px solid #eee; border-radius: 16px; padding: 18px; box-shadow: 0 12px 34px rgba(0,0,0,.07); }
+.pv-row { display: flex; justify-content: space-between; align-items: flex-start; }
+.pv-hi { font-weight: 700; }
+.pv-subtext { color: #777; font-size: .9rem; }
+.pv-count { text-align: right; }
+.pv-count b { display: block; font-size: 1.4rem; }
+.pv-count span { color: #12a150; font-size: .8rem; }
+.pv-spark { width: 100%; height: 64px; margin-top: 12px; display: block; }
+.pv-h { font-weight: 700; margin-bottom: 6px; display: flex; justify-content: space-between; }
+.pv-task { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid #f0f0f0; }
+.pv-task:not(.done) { opacity: .45; }
+.pv-box { flex: none; width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--red); display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: .75rem; }
+.pv-task.done .pv-box { background: var(--red); }
+.splash-cta { text-align: center; margin-top: 52px; }
+.splash-cta h2 { margin-bottom: 16px; }
+.link.back { display: inline-block; margin-bottom: 14px; }
