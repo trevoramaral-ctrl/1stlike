@@ -306,3 +306,26 @@ h1 { font-family:var(--f-disp); font-weight:900; font-size:clamp(26px,6vw,38px);
 }
 .tip:hover .tip-bubble, .tip:focus-visible .tip-bubble { opacity: 1; visibility: visible; transform: translateY(0); }
 @media (max-width: 520px) { .tip-bubble { width: 210px; right: -2px; } }
+
+/* Hub: shared two-column dashboard layout (splash preview + real app) */
+.wrap.hub { max-width: 1040px; }
+.hub-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; align-items: start; }
+.hub-col { display: grid; gap: 16px; align-content: start; }
+@media (max-width: 860px) { .hub-grid { grid-template-columns: 1fr; } }
+
+.greet { margin: 10px 0 16px; }
+.greet h2 { font-family: var(--f-disp); font-size: 2rem; line-height: 1.08; letter-spacing: -.02em; margin: 0 0 4px; }
+.greet p { margin: 0; color: var(--ink-2); }
+.greet-form { margin-bottom: 16px; }
+
+.pv-count-lg b { display: block; font-family: var(--f-disp); font-size: 2rem; line-height: 1.1; }
+.pv-count-lg span { font-size: .8rem; color: var(--good); }
+.pv-count-lg span.neg { color: var(--pink-ink); }
+
+.pv-grade {
+  font-family: var(--f-disp); font-weight: 900; font-size: 1rem;
+  background: var(--lime); color: var(--ink);
+  padding: 3px 11px; border-radius: 999px;
+}
+.hub .prog { margin: 2px 0 10px; }
+.hub .task:first-of-type { border-top: 1px solid var(--line); }

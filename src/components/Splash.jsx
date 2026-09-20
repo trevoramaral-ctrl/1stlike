@@ -1,6 +1,6 @@
-// Marketing splash for logged-out visitors: positioning, then a dashboard preview.
-// The preview is a non-interactive mock. Everything below the third checked task
-// blurs out, so visitors see the shape of the product but have to sign up for it.
+// Marketing splash for logged-out visitors. The preview is a demo dashboard for a
+// fictional streetwear brand, which is why the hashtags and posts are streetwear.
+const BRAND = '@streetwear.lofi'
 
 const TASKS = [
   ["Set today's niche", true],
@@ -25,7 +25,13 @@ const FRESH_POSTS = [
   ['@thriftedco', '48s ago', '1 like'],
   ['@fitcheckfriday', '1m ago', '9 likes'],
   ['@rawselvedge', '1m ago', '4 likes'],
-  ['@archivepieces', '2m ago', '11 likes'],
+]
+
+const REPORT = [
+  ['Consistency', '6-day streak', 88],
+  ['Today’s tasks', '6 of 6 done', 100],
+  ['Follower growth', '+380 / 30 days', 79],
+  ['Engagement', '4.8%, trending up', 84],
 ]
 
 const Heart = () => (
@@ -55,23 +61,24 @@ export default function Splash({ onSignUp, onLogin }) {
       <section className="splash-preview-wrap">
         <p className="splash-peek">Your dashboard</p>
 
+        <div className="greet" aria-hidden="true">
+          <h2>Hey {BRAND} 👋</h2>
+          <p>Line’s moving. Keep feeding it.</p>
+        </div>
+
         <div className="pv-shell">
           <div className="pv-grid" aria-hidden="true">
 
-            {/* LEFT: growth + today's grind */}
             <div className="pv-col">
               <div className="pv-card">
+                <div className="pv-h"><span>Follower growth</span></div>
                 <div className="pv-row">
-                  <div>
-                    <div className="pv-hi">Hey @you 👋</div>
-                    <div className="pv-subtext">Line’s moving. Keep feeding it.</div>
-                  </div>
-                  <div className="pv-count"><b>1,560</b><span>+380 this month</span></div>
+                  <div className="pv-count-lg"><b>1,560</b><span>+380 this month</span></div>
                 </div>
                 <svg className="pv-spark" viewBox="0 0 300 64" preserveAspectRatio="none">
                   <polyline points="8,52 50,44 92,47 134,34 176,26 218,28 260,16 292,10"
-                    fill="none" stroke="var(--red)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="292" cy="10" r="3.5" fill="var(--red)"/>
+                    fill="none" stroke="var(--pink)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="292" cy="10" r="3.5" fill="var(--pink)"/>
                 </svg>
               </div>
 
@@ -86,8 +93,18 @@ export default function Splash({ onSignUp, onLogin }) {
               </div>
             </div>
 
-            {/* RIGHT: hashtags + fresh posts */}
             <div className="pv-col">
+              <div className="pv-card">
+                <div className="pv-h"><span>Report card</span><span className="pv-grade">A−</span></div>
+                {REPORT.map(([label, detail, pct]) => (
+                  <div className="pv-tag" key={label}>
+                    <span className="pv-tag-name">{label}</span>
+                    <span className="pv-heat"><span style={{ width: `${pct}%` }} /></span>
+                    <span className="pv-tag-label">{detail}</span>
+                  </div>
+                ))}
+              </div>
+
               <div className="pv-card">
                 <div className="pv-h"><span>Hottest hashtags in your field</span></div>
                 {HASHTAGS.map(([tag, label, pct]) => (
@@ -104,10 +121,7 @@ export default function Splash({ onSignUp, onLogin }) {
                 {FRESH_POSTS.map(([handle, age, likes]) => (
                   <div className="pv-post pv-tease" key={handle}>
                     <span className="pv-thumb" />
-                    <span className="pv-post-meta">
-                      <b>{handle}</b>
-                      <span>{age} · {likes}</span>
-                    </span>
+                    <span className="pv-post-meta"><b>{handle}</b><span>{age} · {likes}</span></span>
                     <span className="pv-first">Be first</span>
                   </div>
                 ))}

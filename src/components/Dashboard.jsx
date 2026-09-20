@@ -4,7 +4,6 @@ import { loadProfile, saveProfile } from '../lib/store'
 import { startCheckout } from '../lib/checkout'
 
 // `n` marks a task Instagram's API cannot verify, so the member logs it themselves.
-// The tooltip explains why, because "just trust us" is not an answer.
 const MANUAL_LIKES = 'Instagram’s API doesn’t let any app see likes you leave on other people’s posts, so this one can’t be checked automatically. You log it yourself. Automating it is exactly what gets accounts banned, and it’s the bot behaviour we refuse to do.'
 const MANUAL_COMMENTS = 'Instagram’s API doesn’t let any app see comments you leave on other people’s posts, so this one can’t be checked automatically. You log it yourself. Automating it is exactly what gets accounts banned, and it’s the bot behaviour we refuse to do.'
 const MANUAL_FOLLOWS = 'Instagram’s API doesn’t expose who you follow, so this one can’t be checked automatically. You log it yourself. Automating it is exactly what gets accounts banned, and it’s the bot behaviour we refuse to do.'
@@ -18,11 +17,7 @@ const TASKS = [
   { id: 'profile', t: 'Glance at your profile',       d: 'Bio sharp, latest post strong. It’s where all this traffic lands.' },
 ]
 
-// Free members get the first few tasks; the rest of the routine, the streak,
-// follower tracking and the Hunt tools are subscriber-only.
 const FREE_TASKS = 3
-
-// A believable-looking teaser graph shown blurred to non-subscribers.
 const SAMPLE_SERIES = [1180, 1240, 1215, 1330, 1402, 1388, 1475, 1560].map((n, i) => ({ d: String(i), n }))
 
 const pad = (n) => String(n).padStart(2, '0')
@@ -49,7 +44,20 @@ function computeStreak(completedDates = []) {
   return streak
 }
 
-function Spark({ data }) {
+// Grade is built only from things we can actually observe: the member's streak,
+// today's completed tasks, and the follower numbers they've logged.
+function grade(streak, doneCount, delta, haveSeries) {
+  const consistency = Math.min(40, streak * 5)
+  const today = (doneCount / TASKS.length) * 30
+  const growth = !haveSeries ? 0 : delta > 0 ? 30 : delta === 0 ? 15 : 5
+  const score = Math.round(consistency + today + growth)
+  const letter =
+    score >= 90 ? 'A' : score >= 82 ? 'A−' : score >= 74 ? 'B+' : score >= 66 ? 'B' :
+    score >= 58 ? 'B−' : score >= 50 ? 'C+' : score >= 40 ? 'C' : score >= 25 ? 'D' : '—'
+  return { score, letter, consistency, today, growth }
+}
+
+function Spark({ data, color = 'var(--pink)' }) {
   if (data.length < 2) return null
   const w = 300, h = 64, p = 8
   const ns = data.map((x) => x.n)
@@ -63,13 +71,10 @@ function Spark({ data }) {
   })
   const last = pts[pts.length - 1]
   return (
-    <svg className="spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
-      <polyline
-        points={pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}
-        fill="none" stroke="var(--red)" strokeWidth="2.5"
-        strokeLinecap="round" strokeLinejoin="round"
-      />
-      <circle cx={last[0].toFixed(1)} cy={last[1].toFixed(1)} r="3.5" fill="var(--red)" />
+    <svg className="pv-spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
+      <polyline points={pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}
+        fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={last[0].toFixed(1)} cy={last[1].toFixed(1)} r="3.5" fill={color} />
     </svg>
   )
 }
@@ -85,7 +90,6 @@ export default function Dashboard() {
   const [handleDraft, setHandleDraft] = useState('')
   const [countDraft, setCountDraft] = useState('')
   const [follows, setFollows] = useState({})
-  const [day, setDay] = useState(todayStr())
   const [checks, setChecks] = useState({})
   const [completedDates, setCompletedDates] = useState([])
 
@@ -99,28 +103,19 @@ export default function Dashboard() {
         setIsPaid(!!p.is_paid)
         setFollows(p.follows || {})
         setCompletedDates(Array.isArray(st.completedDates) ? st.completedDates : [])
-        // new day rolls the checklist over, history stays
-        if (st.day === todayStr()) {
-          setChecks(st.checks || {})
-          setDay(st.day)
-        } else {
-          setChecks({})
-          setDay(todayStr())
-        }
+        if (st.day === todayStr()) setChecks(st.checks || {})
+        else setChecks({})
       })
       .catch((e) => console.error(e))
       .finally(() => alive && setLoading(false))
     return () => { alive = false }
   }, [user.id])
 
-  // Coming back from Stripe? The webhook flips is_paid server-side moments after
-  // payment. Poll briefly until it lands, then unlock the app.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('checkout') !== 'success') return
     setConfirming(true)
-    let tries = 0
-    let alive = true
+    let tries = 0, alive = true
     const clean = () => window.history.replaceState({}, '', window.location.pathname)
     const iv = setInterval(async () => {
       tries += 1
@@ -128,8 +123,7 @@ export default function Dashboard() {
         const p = await loadProfile(user.id)
         if (p.is_paid) {
           if (alive) { setIsPaid(true); setConfirming(false) }
-          clean(); clearInterval(iv)
-          return
+          clean(); clearInterval(iv); return
         }
       } catch (e) { console.error(e) }
       if (tries >= 10) { if (alive) setConfirming(false); clean(); clearInterval(iv) }
@@ -138,26 +132,18 @@ export default function Dashboard() {
   }, [user.id])
 
   async function goPro() {
-    setProErr('')
-    setProBusy(true)
-    try {
-      await startCheckout() // redirects away on success
-    } catch (e) {
-      setProErr(e.message || 'Something went wrong. Try again.')
-      setProBusy(false)
-    }
+    setProErr(''); setProBusy(true)
+    try { await startCheckout() }
+    catch (e) { setProErr(e.message || 'Something went wrong. Try again.'); setProBusy(false) }
   }
 
-  const persist = (patch) => {
-    saveProfile(user.id, patch).catch((e) => console.error(e))
-  }
+  const persist = (patch) => { saveProfile(user.id, patch).catch((e) => console.error(e)) }
 
   const toggle = (id, val) => {
     const nextChecks = { ...checks, [id]: val }
     setChecks(nextChecks)
     let nextDates = completedDates
-    const allDone = TASKS.every((t) => nextChecks[t.id])
-    if (allDone && !completedDates.includes(todayStr())) {
+    if (TASKS.every((t) => nextChecks[t.id]) && !completedDates.includes(todayStr())) {
       nextDates = [...completedDates, todayStr()]
       setCompletedDates(nextDates)
     }
@@ -172,16 +158,14 @@ export default function Dashboard() {
   const saveHandle = () => {
     const v = handleDraft.trim().replace(/^@+/, '')
     if (!v) return
-    setHandle(v)
-    persist({ handle: v })
+    setHandle(v); persist({ handle: v })
   }
 
   const logCount = () => {
     const v = parseInt(countDraft, 10)
     if (isNaN(v) || v < 0) return
     const next = { ...follows, [todayStr()]: v }
-    setFollows(next)
-    persist({ follows: next })
+    setFollows(next); setCountDraft(''); persist({ follows: next })
   }
 
   if (loading) return <div className="setup"><p className="mono">Loading your account…</p></div>
@@ -194,15 +178,16 @@ export default function Dashboard() {
   const doneFree = TASKS.slice(0, FREE_TASKS).filter((t) => checks[t.id]).length
   const streak = computeStreak(completedDates)
   const loggedToday = follows[todayStr()] != null
+  const g = grade(streak, doneCount, delta, series.length > 1)
 
-  const UpsellButton = ({ label }) => (
+  const Upsell = ({ label }) => (
     <button className="primary" onClick={goPro} disabled={proBusy}>
       {proBusy ? 'Opening checkout…' : label}
     </button>
   )
 
   return (
-    <div className="wrap">
+    <div className="wrap hub">
       <div className="bar">
         <svg className="heart" viewBox="0 0 24 24" fill="var(--lime)" aria-hidden="true"><path d="M12 21s-7.5-4.9-10-9.3C.3 8.4 1.7 5 5 5c2 0 3.3 1.2 4 2.3C9.7 6.2 11 5 13 5c3.3 0 4.7 3.4 3 6.7C19.5 16.1 12 21 12 21z"/></svg>
         <span className="brand">First Like</span>
@@ -215,125 +200,187 @@ export default function Dashboard() {
           <div className="done-badge"><b>Confirming your subscription…</b> This updates on its own.</div>
         )}
 
-        {paid ? (
-          <div className="hero">
-            <div className="hero-top">
-              <div>
-                <p className="hi">{handle ? `Hey @${handle} 👋` : 'Hey there 👋'}</p>
-                <p className="hisub">
-                  {series.length > 1
-                    ? 'Line’s moving. Keep feeding it.'
-                    : series.length === 1
-                      ? 'Day one logged. Log again tomorrow to draw the line.'
-                      : 'Let’s get today’s likes in.'}
-                </p>
-              </div>
-              {current != null && (
-                <div className="count">
-                  <b>{current.toLocaleString()}</b>
-                  <span className={delta < 0 ? 'neg' : ''}>
-                    {delta >= 0 ? '+' : ''}{delta.toLocaleString()} since {prettyDate(series[0].d)}
-                  </span>
-                </div>
+        <div className="greet">
+          <h2>Hey {handle ? `@${handle}` : 'there'} 👋</h2>
+          <p>
+            {paid
+              ? (series.length > 1 ? 'Line’s moving. Keep feeding it.' : 'Log today’s number to start drawing the line.')
+              : 'Three tasks are on the house today. The rest is one step away.'}
+          </p>
+        </div>
+
+        {!paid && !handle && (
+          <div className="hero-form greet-form">
+            <input value={handleDraft} onChange={(e) => setHandleDraft(e.target.value)}
+              placeholder="your @handle" autoComplete="off" autoCapitalize="off" />
+            <button onClick={saveHandle}>Save</button>
+          </div>
+        )}
+
+        <div className="hub-grid">
+          {/* LEFT */}
+          <div className="hub-col">
+            <div className="pv-card">
+              <div className="pv-h"><span>Follower growth</span></div>
+              {paid ? (
+                <>
+                  <div className="pv-count-lg">
+                    <b>{current != null ? current.toLocaleString() : '—'}</b>
+                    {series.length > 1 && (
+                      <span className={delta < 0 ? 'neg' : ''}>
+                        {delta >= 0 ? '+' : ''}{delta.toLocaleString()} since {prettyDate(series[0].d)}
+                      </span>
+                    )}
+                  </div>
+                  <Spark data={series} />
+                  {!handle && (
+                    <div className="hero-form">
+                      <input value={handleDraft} onChange={(e) => setHandleDraft(e.target.value)}
+                        placeholder="your @handle" autoComplete="off" autoCapitalize="off" />
+                      <button onClick={saveHandle}>Save</button>
+                    </div>
+                  )}
+                  <div className="hero-form">
+                    <input type="number" inputMode="numeric" value={countDraft}
+                      onChange={(e) => setCountDraft(e.target.value)} placeholder="today's follower count" />
+                    <button onClick={logCount}>Log today</button>
+                  </div>
+                  <p className="hero-note">
+                    {loggedToday
+                      ? 'Today’s number is in. Automatic Instagram sync lands in a later update.'
+                      : 'Log today’s number to keep your proof current.'}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="blur-wrap">
+                    <div className="blurred" aria-hidden="true"><Spark data={SAMPLE_SERIES} /></div>
+                    <div className="blur-cta"><Upsell label="Subscribe to track your growth" /></div>
+                  </div>
+                  <p className="hero-note">Log your follower count daily and watch the line build.</p>
+                </>
               )}
             </div>
 
-            <Spark data={series} />
+            <div className="pv-card">
+              <div className="pv-h">
+                <span>Today’s grind</span>
+                <span className="mono">{paid ? `${doneCount} / ${TASKS.length}` : `${doneFree} / ${FREE_TASKS} free`}</span>
+              </div>
+              <div className="prog">
+                <div className="bar-track">
+                  <span style={{ width: `${(paid ? doneCount / TASKS.length : doneFree / FREE_TASKS) * 100}%` }} />
+                </div>
+              </div>
 
-            {!handle && (
-              <div className="hero-form">
-                <input value={handleDraft} onChange={(e) => setHandleDraft(e.target.value)}
-                  placeholder="your @handle" autoComplete="off" autoCapitalize="off" />
-                <button onClick={saveHandle}>Save</button>
+              {paid && doneCount === TASKS.length && (
+                <div className="done-badge"><b>Day done.</b> You showed up. That’s how the number climbs.</div>
+              )}
+              {!paid && doneFree === FREE_TASKS && (
+                <div className="done-badge"><b>Nice start.</b> Subscribe to unlock the rest and keep a streak.</div>
+              )}
+
+              {TASKS.map((task, i) => {
+                const locked = !paid && i >= FREE_TASKS
+                return (
+                  <div className={`task${locked ? ' locked' : ''}`} key={task.id}>
+                    <input type="checkbox" id={`chk-${task.id}`} checked={!!checks[task.id]} disabled={locked}
+                      onChange={(e) => toggle(task.id, e.target.checked)} />
+                    <label className="b" htmlFor={`chk-${task.id}`}>
+                      <span className="t">{task.t}{locked ? ' 🔒' : ''}</span>
+                      <span className="d">{locked ? 'Subscriber-only. Unlock the full routine.' : task.d}</span>
+                    </label>
+                    {task.n && !locked && (
+                      <span className="tip" tabIndex={0} aria-label={task.n}>
+                        i<span className="tip-bubble" role="tooltip">{task.n}</span>
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+
+              {paid && <button className="reset" onClick={resetDay}>Reset today</button>}
+            </div>
+          </div>
+
+          {/* RIGHT */}
+          <div className="hub-col">
+            <div className="pv-card">
+              <div className="pv-h">
+                <span>Report card</span>
+                {paid && <span className="pv-grade">{g.letter}</span>}
+              </div>
+              {paid ? (
+                <>
+                  <div className="pv-tag">
+                    <span className="pv-tag-name">Consistency</span>
+                    <span className="pv-heat"><span style={{ width: `${(g.consistency / 40) * 100}%` }} /></span>
+                    <span className="pv-tag-label">{streak}-day streak</span>
+                  </div>
+                  <div className="pv-tag">
+                    <span className="pv-tag-name">Today’s tasks</span>
+                    <span className="pv-heat"><span style={{ width: `${(doneCount / TASKS.length) * 100}%` }} /></span>
+                    <span className="pv-tag-label">{doneCount} of {TASKS.length} done</span>
+                  </div>
+                  <div className="pv-tag">
+                    <span className="pv-tag-name">Follower growth</span>
+                    <span className="pv-heat"><span style={{ width: `${(g.growth / 30) * 100}%` }} /></span>
+                    <span className="pv-tag-label">
+                      {series.length > 1 ? `${delta >= 0 ? '+' : ''}${delta.toLocaleString()} logged` : 'log 2+ days'}
+                    </span>
+                  </div>
+                  <p className="hero-note">
+                    Scored from what we can actually see: your streak, today’s checklist, and the follower
+                    numbers you’ve logged. Reach and engagement join in once Instagram is connected.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="hero-note" style={{ marginTop: 0 }}>
+                    A running score of your consistency, your daily tasks and your follower growth, so you
+                    can see the work turning into numbers.
+                  </p>
+                  <Upsell label="Subscribe to see your score" />
+                </>
+              )}
+            </div>
+
+            <div className="pv-card">
+              <div className="pv-h"><span>Hottest hashtags in your field</span></div>
+              <p className="hero-note" style={{ marginTop: 0 }}>
+                Live hashtag heat for your niche. This switches on when you connect your Instagram
+                professional account, which is coming shortly.
+              </p>
+              {!paid && <Upsell label="Subscribe" />}
+            </div>
+
+            <div className="pv-card">
+              <div className="pv-h"><span>Freshest posts right now</span></div>
+              <p className="hero-note" style={{ marginTop: 0 }}>
+                Posts in your niche seconds after they land, so you can actually be first. Switches on with
+                your Instagram connection.
+              </p>
+              {!paid && <Upsell label="Subscribe" />}
+            </div>
+
+            {!paid && (
+              <div className="soon upsell">
+                <b>Unlock the full app</b>
+                <p>The rest of today’s routine, your daily streak, follower growth tracking, your report card,
+                  and the Toolkit (tag stacks and comment openers).</p>
+                <Upsell label="Subscribe" />
+                {proErr && <p className="err">{proErr}</p>}
               </div>
             )}
-
-            <div className="hero-form">
-              <input type="number" inputMode="numeric" value={countDraft}
-                onChange={(e) => setCountDraft(e.target.value)} placeholder="today's follower count" />
-              <button onClick={logCount}>Log today</button>
-            </div>
-            <p className="hero-note">
-              {loggedToday
-                ? 'Today’s number is in. Automatic Instagram sync lands in a later update.'
-                : 'Log today’s number to keep your proof current.'}
-            </p>
-          </div>
-        ) : (
-          <div className="hero">
-            <div className="hero-top">
-              <div>
-                <p className="hi">{handle ? `Hey @${handle} 👋` : 'Hey there 👋'}</p>
-                <p className="hisub">Your follower growth, tracked day by day. Subscribe to log your real numbers.</p>
+            {paid && (
+              <div className="soon">
+                <b>The Toolkit</b>
+                <p>Tag stacks and comment openers land here next.</p>
               </div>
-              <div className="count blurred" aria-hidden="true">
-                <b>1,560</b><span>+380 this month</span>
-              </div>
-            </div>
-
-            <div className="blur-wrap">
-              <div className="blurred" aria-hidden="true"><Spark data={SAMPLE_SERIES} /></div>
-              <div className="blur-cta">
-                <UpsellButton label="Subscribe to unlock your graph" />
-              </div>
-            </div>
-            {proErr && <p className="err">{proErr}</p>}
-          </div>
-        )}
-
-        <h1>Today's grind</h1>
-        <p className="day">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-
-        <div className="prog">
-          <span className="mono">{paid ? `${doneCount} / ${TASKS.length}` : `${doneFree} / ${FREE_TASKS} free`}</span>
-          <div className="bar-track">
-            <span style={{ width: `${(paid ? doneCount / TASKS.length : doneFree / FREE_TASKS) * 100}%` }} />
+            )}
           </div>
         </div>
-
-        {paid && doneCount === TASKS.length && (
-          <div className="done-badge"><b>Day done.</b> You showed up. That’s how the number climbs.</div>
-        )}
-        {!paid && doneFree === FREE_TASKS && (
-          <div className="done-badge"><b>Nice start.</b> Subscribe to unlock the rest of the routine and keep a streak.</div>
-        )}
-
-        <div className="list">
-          {TASKS.map((task, i) => {
-            const locked = !paid && i >= FREE_TASKS
-            return (
-              <div className={`task${locked ? ' locked' : ''}`} key={task.id}>
-                <input type="checkbox" id={`chk-${task.id}`} checked={!!checks[task.id]} disabled={locked}
-                  onChange={(e) => toggle(task.id, e.target.checked)} />
-                <label className="b" htmlFor={`chk-${task.id}`}>
-                  <span className="t">{task.t}{locked ? ' 🔒' : ''}</span>
-                  <span className="d">{locked ? 'Subscriber-only. Unlock the full routine below.' : task.d}</span>
-                </label>
-                {task.n && !locked && (
-                  <span className="tip" tabIndex={0} aria-label={task.n}>
-                    i<span className="tip-bubble" role="tooltip">{task.n}</span>
-                  </span>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        {paid && <button className="reset" onClick={resetDay}>Reset today</button>}
-
-        {paid ? (
-          <div className="soon">
-            <b>The Toolkit</b>
-            <p>Tag stacks and comment openers land here next.</p>
-          </div>
-        ) : (
-          <div className="soon upsell">
-            <b>Unlock the full app</b>
-            <p>The rest of today’s routine, your daily streak, follower growth tracking, and the Toolkit (tag stacks and comment openers). All in the subscription.</p>
-            <UpsellButton label="Subscribe" />
-            {proErr && <p className="err">{proErr}</p>}
-          </div>
-        )}
+        {proErr && paid && <p className="err">{proErr}</p>}
       </main>
     </div>
   )
