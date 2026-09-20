@@ -35,7 +35,7 @@ export default function AuthScreen({ initialMode = 'signin', onBack }) {
       <div className="auth-card">
         {onBack && <button className="link back" onClick={onBack}>← Back</button>}
         <div className="brandline">
-          <svg className="heart" viewBox="0 0 24 24" fill="var(--red)" aria-hidden="true"><path d="M12 21s-7.5-4.9-10-9.3C.3 8.4 1.7 5 5 5c2 0 3.3 1.2 4 2.3C9.7 6.2 11 5 13 5c3.3 0 4.7 3.4 3 6.7C19.5 16.1 12 21 12 21z"/></svg>
+          <svg className="heart" viewBox="0 0 24 24" fill="var(--lime)" aria-hidden="true"><path d="M12 21s-7.5-4.9-10-9.3C.3 8.4 1.7 5 5 5c2 0 3.3 1.2 4 2.3C9.7 6.2 11 5 13 5c3.3 0 4.7 3.4 3 6.7C19.5 16.1 12 21 12 21z"/></svg>
           <span>First Like</span>
         </div>
         <h1>{mode === 'signup' ? 'Create your account' : 'Welcome back'}</h1>
