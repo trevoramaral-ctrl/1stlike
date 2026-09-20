@@ -3,12 +3,18 @@ import { useAuth, signOut } from '../auth'
 import { loadProfile, saveProfile } from '../lib/store'
 import { startCheckout } from '../lib/checkout'
 
+// `n` marks a task Instagram's API cannot verify, so the member logs it themselves.
+// The tooltip explains why, because "just trust us" is not an answer.
+const MANUAL_LIKES = 'Instagram’s API doesn’t let any app see likes you leave on other people’s posts, so this one can’t be checked automatically. You log it yourself. Automating it is exactly what gets accounts banned, and it’s the bot behaviour we refuse to do.'
+const MANUAL_COMMENTS = 'Instagram’s API doesn’t let any app see comments you leave on other people’s posts, so this one can’t be checked automatically. You log it yourself. Automating it is exactly what gets accounts banned, and it’s the bot behaviour we refuse to do.'
+const MANUAL_FOLLOWS = 'Instagram’s API doesn’t expose who you follow, so this one can’t be checked automatically. You log it yourself. Automating it is exactly what gets accounts banned, and it’s the bot behaviour we refuse to do.'
+
 const TASKS = [
   { id: 'niche',   t: "Set today's niche",            d: 'Decide where you’re hunting today and pull your tag stacks.' },
-  { id: 'first',   t: 'Be first on 20 fresh posts',   d: 'Like within the first minute. Skip anything already on hundreds of likes.' },
-  { id: 'comment', t: 'Leave 5 real comments',        d: 'Use an opener, tweak one word so it fits the actual post.' },
+  { id: 'first',   t: 'Be first on 20 fresh posts',   d: 'Like within the first minute. Skip anything already on hundreds of likes.', n: MANUAL_LIKES },
+  { id: 'comment', t: 'Leave 5 real comments',        d: 'Use an opener, tweak one word so it fits the actual post.', n: MANUAL_COMMENTS },
   { id: 'reply',   t: 'Reply to everyone on your posts', d: 'Fast replies tell the algorithm you’re active.' },
-  { id: 'follow',  t: 'Follow 5 you genuinely rate',  d: 'Only people you’d want listening. Engage first, then follow.' },
+  { id: 'follow',  t: 'Follow 5 you genuinely rate',  d: 'Only people you’d want listening. Engage first, then follow.', n: MANUAL_FOLLOWS },
   { id: 'profile', t: 'Glance at your profile',       d: 'Bio sharp, latest post strong. It’s where all this traffic lands.' },
 ]
 
@@ -303,6 +309,11 @@ export default function Dashboard() {
                   <span className="t">{task.t}{locked ? ' 🔒' : ''}</span>
                   <span className="d">{locked ? 'Subscriber-only. Unlock the full routine below.' : task.d}</span>
                 </label>
+                {task.n && !locked && (
+                  <span className="tip" tabIndex={0} aria-label={task.n}>
+                    i<span className="tip-bubble" role="tooltip">{task.n}</span>
+                  </span>
+                )}
               </div>
             )
           })}

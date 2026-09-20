@@ -281,3 +281,28 @@ h1 { font-family:var(--f-disp); font-weight:900; font-size:clamp(26px,6vw,38px);
 
 .done-badge { border-color: var(--lime); background: color-mix(in srgb, var(--lime) 18%, transparent); }
 .soon.upsell { border-color: var(--lime); }
+
+/* "why is this manual?" tooltip on tasks the Instagram API can't verify */
+.tip {
+  position: relative; margin-left: auto; flex: none;
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1px solid var(--line-2); color: var(--ink-3);
+  font-family: var(--f-mono); font-size: 11px; font-weight: 700; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: help; user-select: none;
+}
+.tip:hover, .tip:focus-visible { border-color: var(--ink-3); color: var(--ink-2); outline: none; }
+.tip-bubble {
+  position: absolute; right: -4px; bottom: calc(100% + 9px); width: 268px; z-index: 60;
+  background: var(--ink); color: var(--bg);
+  font-family: var(--f-body); font-size: 12px; font-weight: 400; line-height: 1.5;
+  text-align: left; padding: 10px 12px; border-radius: 10px; box-shadow: var(--shadow);
+  opacity: 0; visibility: hidden; transform: translateY(4px);
+  transition: opacity .13s ease, transform .13s ease, visibility .13s;
+}
+.tip-bubble::after {
+  content: ''; position: absolute; right: 8px; top: 100%;
+  border: 6px solid transparent; border-top-color: var(--ink);
+}
+.tip:hover .tip-bubble, .tip:focus-visible .tip-bubble { opacity: 1; visibility: visible; transform: translateY(0); }
+@media (max-width: 520px) { .tip-bubble { width: 210px; right: -2px; } }
